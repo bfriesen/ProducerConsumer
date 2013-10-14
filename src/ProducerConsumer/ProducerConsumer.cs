@@ -1,33 +1,9 @@
-﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ProducerConsumer.cs" company="RandomSkunk">
-// Copyright © 2011 by Brian Friesen
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-// </copyright>
-// --------------------------------------------------------------------------------------------------------------------
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 
-namespace RandomSkunk
+namespace RandomSkunk.ProducerConsumer
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-
     /// <summary>
     /// A class to synchronize between producers and a consumer.
     /// </summary>
@@ -39,47 +15,47 @@ namespace RandomSkunk
         /// <summary>
         /// The <see cref="Action{T}"/> that is executed in the consumer thread.
         /// </summary>
-        private readonly Action<T> consumerAction;
+        private readonly Action<T> _consumerAction;
 
         /// <summary>
         /// Whether <see cref="Enqueue"/> should add data items when <see cref="IsRunning"/> is false.
         /// </summary>
-        private readonly bool enqueueWhenStopped;
+        private readonly bool _enqueueWhenStopped;
 
         /// <summary>
         /// Whether to call <see cref="Clear"/> when <see cref="IsRunning"/> is set to false.
         /// </summary>
-        private readonly bool clearQueueUponStop;
+        private readonly bool _clearQueueUponStop;
 
         /// <summary>
         /// The <see cref="Queue{T}"/> that contains the data items.
         /// </summary>
-        private readonly Queue<T> queue = new Queue<T>();
+        private readonly Queue<T> _queue = new Queue<T>();
 
         /// <summary>
-        /// Synchronizes access to <see cref="queue"/>.
+        /// Synchronizes access to <see cref="_queue"/>.
         /// </summary>
-        private readonly object queueLocker = new object();
+        private readonly object _queueLocker = new object();
 
         /// <summary>
-        /// Allows the consumer thread to block when no items are available in the <see cref="queue"/>.
+        /// Allows the consumer thread to block when no items are available in the <see cref="_queue"/>.
         /// </summary>
-        private readonly AutoResetEvent queueWaitHandle = new AutoResetEvent(false);
+        private readonly AutoResetEvent _queueWaitHandle = new AutoResetEvent(false);
 
         /// <summary>
         /// Prevents more than one thread from modifying <see cref="IsRunning"/> at a time.
         /// </summary>
-        private readonly object isRunningLocker = new object();
+        private readonly object _isRunningLocker = new object();
 
         /// <summary>
         /// Allows the consumer thread to block when <see cref="IsRunning"/> is false.
         /// </summary>
-        private readonly AutoResetEvent isRunningWaitHandle = new AutoResetEvent(false);
+        private readonly AutoResetEvent _isRunningWaitHandle = new AutoResetEvent(false);
 
         /// <summary>
         /// Whether the consumer thread is processing data items.
         /// </summary>
-        private volatile bool isRunning;
+        private volatile bool _isRunning;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProducerConsumer{T}"/> class.
@@ -106,13 +82,13 @@ namespace RandomSkunk
                 throw new ArgumentNullException("consumerAction");
             }
 
-            this.consumerAction = consumerAction;
-            this.enqueueWhenStopped = enqueueWhenStopped;
-            this.clearQueueUponStop = clearQueueUponStop;
+            _consumerAction = consumerAction;
+            _enqueueWhenStopped = enqueueWhenStopped;
+            _clearQueueUponStop = clearQueueUponStop;
 
-            this.isRunning = startImmediately;
+            _isRunning = startImmediately;
 
-            new Thread(this.ConsumeItems) { IsBackground = true }.Start();
+            new Thread(ConsumeItems) { IsBackground = true }.Start();
         }
 
         /// <summary>
@@ -122,15 +98,15 @@ namespace RandomSkunk
         {
             get
             {
-                return this.isRunning;
+                return _isRunning;
             }
 
             set
             {
                 // Allow only one thread at a time to modify IsRunning.
-                lock (this.isRunningLocker)
+                lock (_isRunningLocker)
                 {
-                    if (value == this.isRunning)
+                    if (value == _isRunning)
                     {
                         return;
                     }
@@ -138,24 +114,24 @@ namespace RandomSkunk
                     if (value)
                     {
                         // Make sure queueWaitHandle is in a non-signalled state (so it will block) before signalling isRunningWaitHandle.
-                        this.queueWaitHandle.Reset();
+                        _queueWaitHandle.Reset();
 
                         // Also make sure to set isRunning to true before signalling isRunningWaitHandle.
-                        this.isRunning = true;
+                        _isRunning = true;
 
                         // Make sure to signal isRunningWaitHandle AFTER we are sure that queueWaitHandle is non-signalled and isRunning is true.
-                        this.isRunningWaitHandle.Set();
+                        _isRunningWaitHandle.Set();
                     }
                     else
                     {
                         // Make sure isRunningWaitHandle is in a non-signalled state (so it will block) BEFORE setting isRunning to false or signalling queueWaitHandle.
-                        this.isRunningWaitHandle.Reset();
+                        _isRunningWaitHandle.Reset();
 
                         // Make sure to set isRunning to false AFTER we are sure isRunningWaitHandle is non-signalled (will block).
-                        this.isRunning = false;
+                        _isRunning = false;
 
                         // Make sure to signal queueWaitHandle AFTER we are sure that isRunningWaitHandle is non-signalled (will block), and isRunning is set to false.
-                        this.queueWaitHandle.Set();
+                        _queueWaitHandle.Set();
                     }
                 }
             }
@@ -166,7 +142,7 @@ namespace RandomSkunk
         /// </summary>
         public void Start()
         {
-            this.IsRunning = true;
+            IsRunning = true;
         }
 
         /// <summary>
@@ -174,7 +150,7 @@ namespace RandomSkunk
         /// </summary>
         public void Stop()
         {
-            this.IsRunning = false;
+            IsRunning = false;
         }
 
         /// <summary>
@@ -182,9 +158,9 @@ namespace RandomSkunk
         /// </summary>
         public void Clear()
         {
-            lock (this.queueLocker)
+            lock (_queueLocker)
             {
-                this.queue.Clear();
+                _queue.Clear();
             }
         }
 
@@ -196,20 +172,21 @@ namespace RandomSkunk
         /// </param>
         public void Enqueue(T item)
         {
-            lock (this.queueLocker)
+            lock (_queueLocker)
             {
                 // If we're running, or we should queue items up when we're stopped...
-                if (this.isRunning || this.enqueueWhenStopped)
+                if (_isRunning || _enqueueWhenStopped)
                 {
                     // ...queue up the item...
-                    this.queue.Enqueue(item);
+                    _queue.Enqueue(item);
 
                     // ...and signal the consumer thread.
-                    this.queueWaitHandle.Set();
+                    _queueWaitHandle.Set();
                 }
             }
         }
 
+        // ReSharper disable FunctionNeverReturns
         /// <summary>
         /// The consumer thread.
         /// </summary>
@@ -217,45 +194,46 @@ namespace RandomSkunk
         {
             while (true)
             {
-                if (this.isRunning)
+                if (_isRunning)
                 {
                     T nextItem = default(T);
 
                     // Later on, we'll need to know whether there was an item in the queue.
                     bool doesItemExist;
 
-                    lock (this.queueLocker)
+                    lock (_queueLocker)
                     {
-                        doesItemExist = this.queue.Count > 0;
+                        doesItemExist = _queue.Count > 0;
                         if (doesItemExist)
                         {
-                            nextItem = this.queue.Dequeue();
+                            nextItem = _queue.Dequeue();
                         }
                     }
 
                     if (doesItemExist)
                     {
                         // If there was an item in the queue, process it...
-                        this.consumerAction(nextItem);
+                        _consumerAction(nextItem);
                     }
                     else
                     {
                         // ...otherwise, wait for the an item to be queued up.
-                        this.queueWaitHandle.WaitOne();
+                        _queueWaitHandle.WaitOne();
                     }
                 }
                 else
                 {
-                    if (this.clearQueueUponStop)
+                    if (_clearQueueUponStop)
                     {
                         // We have just stopped, so clear the queue if we're configured to do so.
-                        this.Clear();
+                        Clear();
                     }
 
                     // Wait to start up again.
-                    this.isRunningWaitHandle.WaitOne();
+                    _isRunningWaitHandle.WaitOne();
                 }
             }
         }
+        // ReSharper restore FunctionNeverReturns
     }
 }
