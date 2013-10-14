@@ -18,6 +18,11 @@ namespace RandomSkunk.ProducerConsumer
         private readonly Action<T> _consumerAction;
 
         /// <summary>
+        /// The <see cref="Action{Exception}"/> that is executed if the consumer action throws an exception.
+        /// </summary>
+        private readonly Action<Exception> _errorHandler;
+
+        /// <summary>
         /// Whether <see cref="Enqueue"/> should add data items when <see cref="IsRunning"/> is false.
         /// </summary>
         private readonly bool _enqueueWhenStopped;
@@ -63,6 +68,9 @@ namespace RandomSkunk.ProducerConsumer
         /// <param name="consumerAction">
         /// The <see cref="Action{T}"/> that will be executed when the consumer thread processes a data item.
         /// </param>
+        /// <param name="errorHandler">
+        /// The <see cref="Action{Exception}"/> that will be executed if the consumer action throws an exception. If null, the exception will be caught and ignored.
+        /// </param>
         /// <param name="enqueueWhenStopped">
         /// Whether <see cref="Enqueue"/> should add data items when <see cref="IsRunning"/> is false.
         /// </param>
@@ -75,12 +83,14 @@ namespace RandomSkunk.ProducerConsumer
         /// <exception cref="ArgumentNullException">
         /// If <paramref name="consumerAction"/> is null.
         /// </exception>
-        public ProducerConsumer(Action<T> consumerAction, bool enqueueWhenStopped = true, bool clearQueueUponStop = false, bool startImmediately = true)
+        public ProducerConsumer(Action<T> consumerAction, Action<Exception> errorHandler = null, bool enqueueWhenStopped = true, bool clearQueueUponStop = false, bool startImmediately = true)
         {
             if (consumerAction == null)
             {
                 throw new ArgumentNullException("consumerAction");
             }
+
+            _errorHandler = errorHandler ?? (ex => { });
 
             _consumerAction = consumerAction;
             _enqueueWhenStopped = enqueueWhenStopped;
@@ -212,8 +222,26 @@ namespace RandomSkunk.ProducerConsumer
 
                     if (doesItemExist)
                     {
-                        // If there was an item in the queue, process it...
-                        _consumerAction(nextItem);
+                        try
+                        {
+                            // If there was an item in the queue, process it...
+                            _consumerAction(nextItem);
+                        }
+                        catch (Exception ex)
+                        {
+                            // ...but don't kill the thread if there was an exception...
+                            
+                            // ReSharper disable EmptyGeneralCatchClause
+                            try
+                            {
+                                _errorHandler(ex);
+                            }
+                            catch
+                            {
+                                // ...and if the exception handler itself threw an exception, eat it and move on.
+                            }
+                            // ReSharper restore EmptyGeneralCatchClause
+                        }
                     }
                     else
                     {
