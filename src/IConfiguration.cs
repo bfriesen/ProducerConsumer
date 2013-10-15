@@ -5,7 +5,9 @@ namespace RandomSkunk.ProducerConsumer
     /// <summary>
     /// Provides values for the various configurable settings for the library.
     /// </summary>
-    /// <typeparam name="T">The type of item to be produced and consumed by this instance of <see cref="Configuration{T}"/>.</typeparam>
+    /// <typeparam name="T">
+    /// The type of item to be produced and consumed by this instance of <see cref="Configuration{T}"/>.
+    /// </typeparam>
     public interface IConfiguration<T>
     {
         /// <summary>
@@ -24,12 +26,12 @@ namespace RandomSkunk.ProducerConsumer
         bool StartImmediately { get; }
 
         /// <summary>
-        /// Gets a value indicating whether <see cref="ProducerConsumer{T}.Enqueue"/> should add data items when <see cref="IsRunning"/> is false.
+        /// Gets a value indicating whether <see cref="ProducerConsumer{T}.Enqueue"/> should add data items when <see cref="ProducerConsumer{T}.IsRunning"/> is false.
         /// </summary>
         bool EnqueueWhenStopped { get; }
 
         /// <summary>
-        /// Gets a value indicating whether to call <see cref="Clear"/> when <see cref="IsRunning"/> is set to false.
+        /// Gets a value indicating whether to call <see cref="ProducerConsumer{T}.Clear"/> when <see cref="ProducerConsumer{T}.IsRunning"/> is set to false.
         /// </summary>
         bool ClearQueueUponStop { get; }
     }

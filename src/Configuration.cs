@@ -5,7 +5,9 @@ namespace RandomSkunk.ProducerConsumer
     /// <summary>
     /// Contains the various configurable settings for the library.
     /// </summary>
-    /// <typeparam name="T">The type of item to be produced and consumed by this instance of <see cref="Configuration{T}"/>.</typeparam>
+    /// <typeparam name="T">
+    /// The type of item to be produced and consumed by this instance of <see cref="Configuration{T}"/>.
+    /// </typeparam>
     public class Configuration<T> : IConfiguration<T>
     {
         /// <summary>
@@ -16,7 +18,7 @@ namespace RandomSkunk.ProducerConsumer
         /// <summary>
         /// The <see cref="Action{Exception}"/> that is executed if the consumer action throws an exception.
         /// </summary>
-        private Action<Exception> _errorHandler;
+        private Action<Exception> _errorHandler = NoOp;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Configuration{T}"/> class.
@@ -31,7 +33,6 @@ namespace RandomSkunk.ProducerConsumer
 
             _consumerAction = consumerAction;
 
-            ErrorHandler = null;
             EnqueueWhenStopped = true;
             ClearQueueUponStop = false;
             StartImmediately = true;
@@ -56,10 +57,7 @@ namespace RandomSkunk.ProducerConsumer
             }
             set
             {
-                _errorHandler =
-                    value == null
-                        ? _ => {}
-                        : value;
+                _errorHandler = value ?? NoOp;
             }
         }
 
@@ -69,13 +67,21 @@ namespace RandomSkunk.ProducerConsumer
         public bool StartImmediately { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether <see cref="ProducerConsumer{T}.Enqueue"/> should add data items when <see cref="IsRunning"/> is false.
+        /// Gets or sets a value indicating whether <see cref="ProducerConsumer{T}.Enqueue"/> should add data items when <see cref="ProducerConsumer{T}.IsRunning"/> is false.
         /// </summary>
         public bool EnqueueWhenStopped { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether to call <see cref="Clear"/> when <see cref="IsRunning"/> is set to false.
+        /// Gets or sets a value indicating whether to call <see cref="ProducerConsumer{T}.Clear"/> when <see cref="ProducerConsumer{T}.IsRunning"/> is set to false.
         /// </summary>
         public bool ClearQueueUponStop { get; set; }
+        
+        /// <summary>
+        /// A no-op method. Used when setting <see cref="ErrorHandler"/> if the value passed to it is null.
+        /// </summary>
+        /// <param name="ex">An exception that will be ignored.</param>
+        private static void NoOp(Exception ex)
+        {
+        }
     }
 }
