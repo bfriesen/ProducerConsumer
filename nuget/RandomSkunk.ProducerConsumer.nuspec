@@ -9,7 +9,7 @@
         <projectUrl>https://github.com/bfriesen/ProducerConsumer</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>An implementation of the producer-consumer pattern as a single generic class.</description>
-        <tags>producer consumer</tags>
+        <tags>producer consumer pattern producer-consumer consumer-producer</tags>
     </metadata>
     <files>
         <file src="..\src\bin\Release\RandomSkunk.ProducerConsumer.dll" target="lib\net35-client\RandomSkunk.ProducerConsumer.dll" />
