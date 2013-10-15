@@ -98,7 +98,14 @@ namespace RandomSkunk.ProducerConsumer
 
             _isRunning = startImmediately;
 
+#if PORTABLE
+            if (!ThreadPool.QueueUserWorkItem(ConsumeItems))
+            {
+                throw new InvalidOperationException("Unable to queue work item.");
+            }
+#else
             new Thread(ConsumeItems) { IsBackground = true }.Start();
+#endif
         }
 
         /// <summary>
@@ -200,7 +207,10 @@ namespace RandomSkunk.ProducerConsumer
         /// <summary>
         /// The consumer thread.
         /// </summary>
-        private void ConsumeItems()
+        /// <param name="state">
+        /// Ignored, but required by ThreadPool.QueueUserWorkItem.
+        /// </param>
+        private void ConsumeItems(object state)
         {
             while (true)
             {
